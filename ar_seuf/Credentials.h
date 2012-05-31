@@ -7,7 +7,7 @@ const boolean use_adhoc = false;
 const char *ssid_adhoc = "ArduinoWiFly";
 
 //Normal mode (WPA2)
-char passphrase[] = "SophiXInTheMiXEtTiTiXDansLaPlace42";
+char passphrase[] = "passphrase";
 char ssid[] = "apero";
 
 #endif
