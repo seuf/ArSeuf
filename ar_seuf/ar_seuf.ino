@@ -69,7 +69,7 @@ void setup() {
 
   if (use_adhoc) {
     /* Creating Adhoc Network */
-    if(!WiFly.createAdHocNetwork(ssid)) {
+    if(!WiFly.createAdHocNetwork(ssid_adhoc)) {
       analogWrite(RED_LED_PIN, 255);
       analogWrite(GREEN_LED_PIN, 0);
       analogWrite(BLUE_LED_PIN, 0);
@@ -80,7 +80,7 @@ void setup() {
     }
   } else {
     /* Joining wifi */
-    if (!WiFly.join(ssid, passphrase)) {
+    if (!WiFly.join(ssid, passphrase, is_wpa)) {
       analogWrite(RED_LED_PIN, 255);
       analogWrite(GREEN_LED_PIN, 0);
       analogWrite(BLUE_LED_PIN, 0);
@@ -226,10 +226,13 @@ void execCommand(char *cmd) {
     analogWrite(BLUE_LED_PIN, 0);
   } else if (strcmp(cmd, "left") == 0) {
     servo.write(-90);
-    delay(100);
+    delay(10);
   } else if (strcmp(cmd, "right") == 0) {
     servo.write(90);
-    delay(100);
+    delay(10);
+  } else if (strcmp(cmd, "play") == 0) {
+    playMelody2();
+    delay(10);
   }
 }
 
@@ -269,4 +272,23 @@ void playMelody() {
     // pause between notes
     delay(tempo / 2); 
   } 
+}
+
+
+void playMelody2() {
+  int length_2 = 15; // the number of notes
+  char notes_a_vous_dirais_je_maman[] = "ccggaagffeeddc "; // a space represents a rest
+  int beats_a_vous_dirais_je_maman[] = { 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 4 };
+  int tempo2 = 300;
+  for (int i = 0; i < length_2; i++) {
+    if (notes_a_vous_dirais_je_maman[i] == ' ') {
+      delay(beats_a_vous_dirais_je_maman[i] * tempo2); // rest
+    } else {
+      playNote(notes_a_vous_dirais_je_maman[i], beats_a_vous_dirais_je_maman[i] * tempo2);
+    }
+
+    // pause between notes
+    delay(tempo2 / 2); 
+  } 
+  
 }
