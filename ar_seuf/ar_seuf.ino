@@ -6,43 +6,25 @@
 #include <WiFly.h>
 #include <Servo.h>
 #include "Credentials.h"
+#include "IO_Pin.h"
+#include "Melody.h"
+#include "Motor.h"
+#include "Ping.h"
 
-#define LED1 2 
-#define LED2 3 
-#define LED3 4 
-#define LED4 5 
-#define ZIK 6 //PIEZO ELEMENT
-#define RED_LED_PIN  7
-#define GREEN_LED_PIN 8
-#define BLUE_LED_PIN 9
-#define SERVO_PIN 10
 
 #define MAX_COMMAND_LENGTH 10 //Max command Length
+#define DEFAULT_SPEED 200
+#define SAFE_DISTANCE 50
 
 const char delimiters[] = "/"; //Delimiter for url
+int servopos = 90;
 
-
-
-/* Melody Variables */
-int length = 4; // the number of notes
-//char notes_a_vous_dirais_je_maman[] = "ccggaagffeeddc "; // a space represents a rest
-//int beats_a_vous_dirais_je_maman[] = { 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 4 };
-char notes[] = "ddef";
-int beats[] = {1, 1, 1, 3};
-int tempo = 100;
-
-
-/* Variables globales pour gérer l'état des loupiottes */
-//int nb_pins = 4;
-//boolean powered[4] = {false, false, false, false};
-//int pins[4] = {LED1, LED2, LED3, LED4};
-boolean led1_on = false;
-boolean led2_on = false;
-boolean led3_on = false;
-boolean led4_on = false;
 
 WiFlyServer server(80);
 Servo servo;
+Motor motor;
+Melody melody;
+Ping ping;
 
 void setup() {
   analogWrite(RED_LED_PIN, 0);
@@ -51,22 +33,16 @@ void setup() {
   
   Serial.begin(9600);
   
-  /* Initializing LEDs... */
-  pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  pinMode(LED3, OUTPUT);
-  pinMode(LED4, OUTPUT);
-  pinMode(ZIK, OUTPUT);
   servo.attach(SERVO_PIN);
+  servo.write(90);
   
-//  pinMode(LY1, OUTPUT);
-//  pinMode(LY2, OUTPUT);
- 
+  motor.attach();
+  melody.attach();
+   
   /* Initializing WiFly */
   WiFly.setUart(&Serial);
   WiFly.begin(use_adhoc);
-   
-
+    
   if (use_adhoc) {
     /* Creating Adhoc Network */
     if(!WiFly.createAdHocNetwork(ssid_adhoc)) {
@@ -96,17 +72,17 @@ void setup() {
 
   /* Starting Server */
   server.begin();
+
   
   analogWrite(RED_LED_PIN, 0);
   analogWrite(GREEN_LED_PIN, 255);
   analogWrite(BLUE_LED_PIN, 0);
-  playMelody();
+  melody.playMelody();
 }
 
 
 void loop() {
-
- // Serial.println("Program Started.. Waiting for clients..");
+ 
   
   WiFlyClient client = server.available();
   
@@ -114,8 +90,6 @@ void loop() {
     char buffer[512];
     char get_url[MAX_COMMAND_LENGTH];
     char cmd[MAX_COMMAND_LENGTH];
-//    char *get_url;
-//    char *cmd;
     //char command[MAX_COMMAND_LENGTH];
     boolean parsed_ok = false;
     int buffPos = 0;
@@ -168,8 +142,64 @@ void loop() {
     // give the web browser time to receive the data
     delay(100);
     client.stop();
+  } else {
+    /* No Client : Autonomous mode :) */
+    
+    /* Scanning All directions */
+    execCommand("rm"); // Radar middle
+    delay(500); // Wait for radar in position
+    int distance_front = ping.ping(); 
+    
+    execCommand("rl"); // Radar left
+    delay(1000); // Wait for radar in position
+    int distance_left = ping.ping(); 
+
+    execCommand("rr"); // Radar right
+    delay(2000); // Wait for radar in position
+    int distance_right = ping.ping(); 
+    
+    execCommand("rm");
+    delay(100);    
+    
+    Serial.print("distance front :");
+    Serial.println(distance_front);   
+    Serial.print("distance Left :");
+    Serial.println(distance_left);
+    Serial.print("distance Right :");
+    Serial.println(distance_right);
+    
+    if (distance_front > SAFE_DISTANCE) {
+      /* OK, go FWD */
+      Serial.println("fwd");
+      execCommand("fwd");
+      delay(2000);
+      execCommand("stop");
+    } else {
+      execCommand("stop");
+      /* Test if we can turn left */
+      if (distance_left > SAFE_DISTANCE) {
+         Serial.println("tl");
+        /* OK, turn LEFT */
+        execCommand("tl");
+        delay(1000);
+        execCommand("stop");
+      } else {
+        /* Test if we can Turn Right */
+        if (distance_right > SAFE_DISTANCE) {
+          Serial.println("TR");
+          execCommand("tr");
+          delay(1000);
+          execCommand("stop");
+        } else {
+          Serial.println("demitour");
+          /* impasse : demi tour ! */
+          execCommand("tr");
+          delay(5000);
+          execCommand("stop");
+        }          
+      }
+    }
   }
-  
 }
 
 
@@ -180,39 +210,7 @@ void loop() {
  */
 void execCommand(char *cmd) {
   
-  if (strcmp(cmd, "led1") == 0) {
-    if (led1_on) {
-      digitalWrite(LED1, LOW);
-      led1_on = false;
-    } else {
-      digitalWrite(LED1, HIGH);
-      led1_on = true;
-    }
-  } else if (strcmp(cmd, "led2") == 0) {
-    if (led2_on) {   
-      digitalWrite(LED2, LOW);
-      led2_on = false;
-    } else {
-      digitalWrite(LED2, HIGH);
-      led2_on = true;
-    }
-  } else if (strcmp(cmd, "led3") == 0) {
-    if (led3_on) {   
-      digitalWrite(LED3, LOW);
-      led3_on = false;
-    } else {
-      digitalWrite(LED3, HIGH);
-      led3_on = true;
-    }
-  } else if (strcmp(cmd, "led4") == 0) {
-    if (led4_on) {   
-      digitalWrite(LED4, LOW);
-      led4_on = false;
-    } else {
-      digitalWrite(LED4, HIGH);
-      led4_on = true;
-    }
-  } else if (strcmp(cmd, "red") == 0) {
+  if (strcmp(cmd, "red") == 0) {
     analogWrite(RED_LED_PIN, 255);
     analogWrite(GREEN_LED_PIN, 0);
     analogWrite(BLUE_LED_PIN, 0);
@@ -224,71 +222,42 @@ void execCommand(char *cmd) {
     analogWrite(RED_LED_PIN, 0);
     analogWrite(GREEN_LED_PIN, 255);
     analogWrite(BLUE_LED_PIN, 0);
-  } else if (strcmp(cmd, "left") == 0) {
-    servo.write(-90);
-    delay(10);
-  } else if (strcmp(cmd, "right") == 0) {
-    servo.write(90);
-    delay(10);
   } else if (strcmp(cmd, "play") == 0) {
-    playMelody2();
+    melody.playMelody();
     delay(10);
+  } else if (strcmp(cmd, "play2") == 0) {
+    melody.playMelody2();
+    delay(10);
+  } else if (strcmp(cmd, "rl") == 0) {
+    /* Radar Left */
+    servopos = 0;
+    servo.write(0);
+    delay(15);
+  } else if (strcmp(cmd, "rm") == 0) {
+    /* Radar Midle */
+    servopos = 90;
+    servo.write(90);
+    delay(15);
+  } else if (strcmp(cmd, "rr") == 0) {
+    /* Radar Right */
+    servopos = 180;
+    servo.write(180);
+    delay(15);
+  } else if (strcmp(cmd, "fwd") == 0) {
+    motor.goForward(DEFAULT_SPEED);
+  } else if (strcmp(cmd, "back") == 0) {
+    motor.goBack(DEFAULT_SPEED);
+  } else if (strcmp(cmd, "tl") == 0) {
+    motor.turnLeft(DEFAULT_SPEED);
+  } else if (strcmp(cmd, "tr") == 0) {
+    motor.turnRight(DEFAULT_SPEED);
+  } else if (strcmp(cmd, "stop") == 0) {
+    motor.stopRobot();
+  } else if (strcmp(cmd, "stopt") == 0) {
+    motor.stopTurn(DEFAULT_SPEED);
   }
 }
 
 
 
 
-/* Melody Functions */
-void playTone(int tone, int duration) {
-  for (long i = 0; i < duration * 1000L; i += tone * 2) {
-    digitalWrite(ZIK, HIGH);
-    delayMicroseconds(tone);
-    digitalWrite(ZIK, LOW);
-    delayMicroseconds(tone);
-  }
-}
-
-void playNote(char note, int duration) {
-  char names[] = { 'c', 'd', 'e', 'f', 'g', 'a', 'b', 'C' };
-  int tones[] = { 1915, 1700, 1519, 1432, 1275, 1136, 1014, 956 };
-
-  // play the tone corresponding to the note name
-  for (int i = 0; i < 8; i++) {
-    if (names[i] == note) {
-      playTone(tones[i], duration);
-    }
-  }
-}
-
-void playMelody() {
-  for (int i = 0; i < length; i++) {
-    if (notes[i] == ' ') {
-      delay(beats[i] * tempo); // rest
-    } else {
-      playNote(notes[i], beats[i] * tempo);
-    }
-
-    // pause between notes
-    delay(tempo / 2); 
-  } 
-}
-
-
-void playMelody2() {
-  int length_2 = 15; // the number of notes
-  char notes_a_vous_dirais_je_maman[] = "ccggaagffeeddc "; // a space represents a rest
-  int beats_a_vous_dirais_je_maman[] = { 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 4 };
-  int tempo2 = 300;
-  for (int i = 0; i < length_2; i++) {
-    if (notes_a_vous_dirais_je_maman[i] == ' ') {
-      delay(beats_a_vous_dirais_je_maman[i] * tempo2); // rest
-    } else {
-      playNote(notes_a_vous_dirais_je_maman[i], beats_a_vous_dirais_je_maman[i] * tempo2);
-    }
-
-    // pause between notes
-    delay(tempo2 / 2); 
-  } 
-  
-}
