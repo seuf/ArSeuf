@@ -10,5 +10,7 @@ const char *ssid_adhoc = "ArduinoWiFly";
 char passphrase[] = "passphrase";
 char ssid[] = "apero";
 
+const boolean is_wpa = true;
+
 #endif
 
