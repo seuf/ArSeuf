@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen 
+	xmlns:android="http://schemas.android.com/apk/res/android" 
+	android:title="Preferences">
+
+	<EditTextPreference 
+		android:title="arduino IP"
+		android:key="arduino_ip"
+		android:dialogTitle="Arduino WiFly IP"
+		android:dialogMessage="Entre l'IP de l'arduino"
+		android:defaultValue="192.168.30.15" /> 
+
+</PreferenceScreen>
