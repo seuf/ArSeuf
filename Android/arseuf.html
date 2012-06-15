@@ -1,0 +1,59 @@
+<html>
+  <head>
+    <title>AR Seuf</title>
+    <script>
+      var droid_web = new Android();
+	  var action = function(cmd) { droid_web.postEvent("action", cmd); }
+    </script>
+  </head>
+  <body>
+    <!-- LED control 
+	<fieldset>
+		<legend>LED Control</legend>
+		<input type="checkbox" name="led" value="led1" onChange="action('led1')" />LED1
+		<input type="checkbox" name="led" value="led2" onChange="action('led2')" />LED2
+		<input type="checkbox" name="led" value="led3" onChange="action('led3')" />LED3
+		<input type="checkbox" name="led" value="led4" onChange="action('led4')" />LED4
+	</fieldset>
+   -->
+	<!-- COLOR control -->
+	<fieldset>
+		<legend>COLOR Control</legend>
+		<div style="width:50px;height:30px;background-color:#FF0000" onClick="action('red')"></div>
+		<div style="width:50px;height:30px;background-color:#00FF00" onClick="action('green')"></div>
+		<div style="width:50px;height:30px;background-color:#0000FF" onClick="action('blue')"></div>
+	</fieldset>
+	
+	<!-- Servo control -->
+	<fieldset>
+		<legend>SERVO Control</legend>
+		<input type="button" value="left" onClick="action('rl')" />
+		<input type="button" value="right" onClick="action('rr')" />
+	</fieldset>
+
+	<!-- Motor Control -->
+	<fieldset>
+		<legend>Robot Control</legend>
+		<table>
+			<tr>
+				<td></td>
+				<td><input type="button" value="^" onClick="action('fwd')" /></td>
+				<td></td>
+			</tr>
+			<tr>
+				<td><input type="button" value="<" onClick="action('ml')" /></td>
+				<td></td>
+				<td><input type="button" value=">" onClick="action('mr')" /></td>
+			</tr>
+			<tr>
+				<td></td>
+                                <td><input type="button" value="v" onClick="action('back')" /></td>
+                                <td></td>
+			</tr>
+		</table>
+	</fieldset>
+		
+			
+	
+  </body>
+</html>
