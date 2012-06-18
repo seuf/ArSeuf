@@ -161,58 +161,47 @@ void loop() {
     /* No Client : Autonomous mode :) */
     
     /* Scanning All directions */
-    execCommand("rm"); // Radar middle
-    delay(500); // Wait for radar in position
+    servo.write(90); // Radar middle
+    delay(200); // Wait for radar in position
     int distance_front = ping.ping(); 
     
-    execCommand("rl"); // Radar left
-    delay(1000); // Wait for radar in position
-    int distance_left = ping.ping(); 
-
-    execCommand("rr"); // Radar right
-    delay(2000); // Wait for radar in position
-    int distance_right = ping.ping(); 
-    
-    execCommand("rm");
-    delay(100);    
-    
-    Serial.print("distance front :");
-    Serial.println(distance_front);   
-    Serial.print("distance Left :");
-    Serial.println(distance_left);
-    Serial.print("distance Right :");
-    Serial.println(distance_right);
-    
-    if (distance_front > SAFE_DISTANCE) {
-      /* OK, go FWD */
-      Serial.println("fwd");
-      execCommand("fwd");
-      delay(2000);
-      execCommand("stop");
-    } else {
-      execCommand("stop");
-      /* Test if we can turn left */
-      if (distance_left > SAFE_DISTANCE) {
-         Serial.println("tl");
-        /* OK, turn LEFT */
-        execCommand("tl");
+    if (distance_front < SAFE_DISTANCE) {
+      motor.stopRobot();
+      /* Ping left and front left */
+      servo.write(0);
+      delay(1000);
+      int cm0 = ping.ping();
+      servo.write(45);
+      delay(1000);
+      int cm45 = ping.ping();
+      
+      if (cm0 < SAFE_DISTANCE && cm45 < SAFE_DISTANCE) {
+        /* Can't turn LEFT, ping right and front right */
+        servo.write(180);
         delay(1000);
-        execCommand("stop");
-      } else {
-        /* Test if we can Turn Right */
-        if (distance_right > SAFE_DISTANCE) {
-          Serial.println("TR");
-          execCommand("tr");
-          delay(1000);
-          execCommand("stop");
+        int cm180 = ping.ping();
+        servo.write(135);
+        delay(1000);
+        int cm135 = ping.ping();
+        
+        if (cm180 < SAFE_DISTANCE && cm135 < SAFE_DISTANCE) {
+          /* Can't turn right : go back (turn 3 seconds) */
+          motor.turnRight(DEFAULT_SPEED);
+          delay(3000);
+          motor.stopRobot();
         } else {
-          Serial.println("demitour");
-          /* impasse : demi tour ! */
-          execCommand("tr");
-          delay(5000);
-          execCommand("stop");
-        }          
+          motor.turnRight(DEFAULT_SPEED);          
+          delay(1000);
+          motor.stopRobot();
+        }
+      } else {
+          motor.turnLeft(DEFAULT_SPEED);
+          delay(1000);
+          motor.stopRobot();
       }
+    } else {
+        // Cool ! Let's GO !
+        motor.goForward(DEFAULT_SPEED);
     }
   }
 }
